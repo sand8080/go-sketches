@@ -1,4 +1,4 @@
-package sketches
+package search
 
 import (
 	"math"

@@ -1,11 +1,8 @@
-package sketches
+package search
 
 import (
 	"reflect"
 	"testing"
-	"math/rand"
-	"fmt"
-	"time"
 )
 
 func TestFindMaxCrossingArray(t *testing.T) {
@@ -134,7 +131,8 @@ func TestFindMaxSubarray(t *testing.T) {
 
 func TestFindMaxSubArrayReferenceValue(t *testing.T) {
 	var arr = []int {
-		13, -3, -25, 20, -3, -16, -23, 18, 20, -7, 12, -5, -22, 15, -4, 7,
+		13, -3, -25, 20, -3, -16, -23, 18, 20, -7, 12, -5,
+		-22, 15, -4, 7,
 	}
 	expectedRange := ArrayRangeSum{low: 7, high: 10, sum: 43}
 	actualRange := FindMaxSubArray(arr)
@@ -142,7 +140,6 @@ func TestFindMaxSubArrayReferenceValue(t *testing.T) {
 		t.Errorf("Expected range: %v, actual: %v",
 			expectedRange, actualRange)
 	}
-	//fmt.Println(actualRange)
 	expectedArray := []int {18, 20, -7, 12}
 	actualArray := arr[actualRange.low:actualRange.high + 1]
 	if !reflect.DeepEqual(expectedArray, actualArray) {
@@ -150,28 +147,3 @@ func TestFindMaxSubArrayReferenceValue(t *testing.T) {
 			expectedArray, actualArray)
 	}
 }
-
-/*
-func TimeIt(start time.Time, name string) {
-	elapsed := time.Since(start)
-	fmt.Printf("%s tooks %s", name, elapsed)
-	fmt.Println()
-}
-
-func TestFindMaxSubArraySpeed(t *testing.T) {
-	min, max, length := -100, 100, 100000000
-	arr := make([]int, length)
-	rand.Seed(time.Now().Unix())
-	for i := 0; i < length; i++ {
-		arr[i] = rand.Intn(max - min) + min
-	}
-
-	name := fmt.Sprintf("finding max subarray in %d", len(arr))
-	defer TimeIt(time.Now(), name)
-	result := FindMaxSubArray(arr)
-
-	fmt.Printf("Found max subarray: %v, subarray len: %d",
-		result, result.high - result.low)
-	fmt.Println()
-}
-*/

@@ -1,9 +1,8 @@
 package search
 
 import (
-	"testing"
-	"fmt"
 	"reflect"
+	"testing"
 )
 
 func TestNewDisjointSetInt_getHeaviestFailed(t *testing.T) {
@@ -59,19 +58,90 @@ func TestNewDisjointSetInt_getHeaviestSuccess(t *testing.T) {
 	}
 }
 
-func TestDisjointSetInt_Union(t *testing.T) {
+func checkDisjoint(exp_parents, exp_weights map[int]int, ds *DisjointSetInt, t *testing.T) {
+
+	if !reflect.DeepEqual(exp_parents, ds.Parents) {
+		t.Errorf("Union parents unexpected result: %v != %v",
+			exp_parents, ds.Parents)
+	}
+
+	if !reflect.DeepEqual(exp_weights, ds.Weights) {
+		t.Errorf("Union weights unexpected result: %v != %v",
+			exp_weights, ds.Weights)
+	}
+
+}
+
+func TestDisjointSetInt_UnionInOneGroup(t *testing.T) {
 	ds := NewDisjointSetInt(0)
 	ds.Union([]int{1, 2, 3})
 	ds.Union([]int{4, 5, 6})
 	ds.Union([]int{1, 7})
 	ds.Union([]int{7, 4})
-	fmt.Println("ds", ds.Parents, ds.Weights)
-	expected_parents := map[int]int{1: 3, 2: 3, 3: 3, 4: 6, 5: 6, 6: 3, 7: 3}
-	if !reflect.DeepEqual(expected_parents, ds.Parents) {
-		t.Errorf("Union unexpected result: %v != %v", expected_parents, ds.Parents)
-	}
-	expected_weights := map[int]int{1: 1, 2: 1, 3: 7, 4: 1, 5: 1, 6: 3, 7: 1}
-	if !reflect.DeepEqual(expected_weights, ds.Weights) {
-		t.Errorf("Union unexpected result: %v != %v", expected_parents, ds.Parents)
-	}
+	exp_parents := map[int]int{1: 3, 2: 3, 3: 3, 4: 6, 5: 6, 6: 3, 7: 3}
+	exp_weights := map[int]int{1: 1, 2: 1, 3: 7, 4: 1, 5: 1, 6: 3, 7: 1}
+	checkDisjoint(exp_parents, exp_weights, ds, t)
+}
+
+func TestDisjointSetInt_UnionMergeByNonRoot(t *testing.T) {
+	ds := NewDisjointSetInt(0)
+	ds.Union([]int{1, 2, 3})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3},
+		map[int]int{1: 1, 2: 1, 3: 3},
+		ds, t)
+
+	ds.Union([]int{4, 5})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3, 4: 5, 5: 5},
+		map[int]int{1: 1, 2: 1, 3: 3, 4: 1, 5: 2},
+		ds, t)
+
+	ds.Union([]int{1, 4, 6})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3, 4: 5, 5: 3, 6: 3},
+		map[int]int{1: 1, 2: 1, 3: 6, 4: 1, 5: 2, 6: 1},
+		ds, t)
+}
+
+func TestDisjointSetInt_UnionMergeByRoot(t *testing.T) {
+	ds := NewDisjointSetInt(0)
+	ds.Union([]int{1, 2, 3})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3},
+		map[int]int{1: 1, 2: 1, 3: 3},
+		ds, t)
+
+	ds.Union([]int{4, 5})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3, 4: 5, 5: 5},
+		map[int]int{1: 1, 2: 1, 3: 3, 4: 1, 5: 2},
+		ds, t)
+
+	ds.Union([]int{1, 5, 6})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3, 4: 5, 5: 3, 6: 3},
+		map[int]int{1: 1, 2: 1, 3: 6, 4: 1, 5: 2, 6: 1},
+		ds, t)
+}
+
+func TestDisjointSetInt_UnionMergeByMultipleIntersections(t *testing.T) {
+	ds := NewDisjointSetInt(0)
+	ds.Union([]int{1, 2, 3})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3},
+		map[int]int{1: 1, 2: 1, 3: 3},
+		ds, t)
+
+	ds.Union([]int{4, 5, 6, 7})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 3, 4: 7, 5: 7, 6: 7, 7: 7},
+		map[int]int{1: 1, 2: 1, 3: 3, 4: 1, 5: 1, 6: 1, 7: 4},
+		ds, t)
+
+	ds.Union([]int{4, 1, 2, 3})
+	checkDisjoint(
+		map[int]int{1: 3, 2: 3, 3: 7, 4: 7, 5: 7, 6: 7, 7: 7},
+		map[int]int{1: 1, 2: 1, 3: 3, 4: 1, 5: 1, 6: 1, 7: 7},
+		ds, t)
 }

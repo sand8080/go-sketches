@@ -17,16 +17,17 @@ func NewDisjointSetInt(size int) *DisjointSetInt {
 	}
 }
 
-func (ds *DisjointSetInt) getPath(id int) ([]int, int) {
+func (ds *DisjointSetInt) getPath(id int) ([]int, int, error) {
 	path := []int{id}
 	root, ok := ds.Parents[id]
 	if !ok {
-		panic(fmt.Sprintf("Key %v not found in parents", id))
+		msg := fmt.Sprintf("Key %v not found in parents", id)
+		return nil, 0, errors.New(msg)
 	}
 
 	for {
 		if root == path[len(path) - 1] {
-			return path, root
+			return path, root, nil
 		}
                 path = append(path, root)
 		root, ok = ds.Parents[root]
@@ -36,57 +37,100 @@ func (ds *DisjointSetInt) getPath(id int) ([]int, int) {
 	}
 }
 
-func (ds *DisjointSetInt) getOrCreateRoot(id int) int {
+func (ds *DisjointSetInt) getOrCreateRoot(id int) (int, error) {
 	if _, ok := ds.Parents[id]; !ok {
 		ds.Parents[id] = id
 		ds.Weights[id] = 1
-		return id
+		return id, nil
 	}
 
-	path, root := ds.getPath(id)
+	path, root, err := ds.getPath(id)
+	if err != nil {
+		return 0, err
+	}
 
 	// Compress the path and return
-	for ancestor := range path {
+	for _, ancestor := range path {
 		ds.Parents[ancestor] = root
 	}
-	return root
+	return root, nil
 }
 
-func (ds * DisjointSetInt) getHeaviest(roots []int) (int, int, error) {
+
+func (ds * DisjointSetInt) getHeaviest(ids, roots []int) (int, int, error) {
+
 	if len(roots) == 0 {
 		return 0, 0, errors.New("Can't find minimal value in the " +
 			"empty collection")
 	}
 
+	noWeightError := func(key int) (int, int, error) {
+		err := errors.New(fmt.Sprintf("'%v' is not found in weights", key))
+		return 0, 0, err
+	}
+
 	max_idx := 0
 	max, ok := ds.Weights[roots[max_idx]]
 	if !ok {
-		return 0, 0, errors.New(fmt.Sprintf("'%v' is not found in weights",
-			roots[max_idx]))
+		return noWeightError(roots[max_idx])
 	}
 
-	for i := 1; i < len(roots); i++ {
-		if max < roots[i] {
-			max, max_idx = roots[i], i
+	for root_idx := 1; root_idx < len(roots); root_idx++ {
+		root := roots[root_idx]
+		root_weight, ok := ds.Weights[root]
+		if !ok {
+			return noWeightError(root_idx)
+		}
+		if max < root_weight ||
+			(max == root_weight && ids[max_idx] < ids[root_idx]) {
+			max, max_idx = root_weight, root_idx
+		}
+	}
+	return roots[max_idx], max_idx, nil
+}
+
+func (ds *DisjointSetInt) getRoots(ids []int) ([]int, error) {
+	result := make([]int, len(ids))
+	for idx, id := range ids {
+		root, err := ds.getOrCreateRoot(id)
+		if err != nil {
+			return nil, err
+		}
+		result[idx] = root
+	}
+	return result, nil
+}
+
+func (ds *DisjointSetInt) Union(ids []int) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	roots, err := ds.getRoots(ids)
+	if err != nil {
+		return err
+	}
+
+	heaviest, _, err := ds.getHeaviest(ids, roots)
+	if err != nil {
+		return err
+	}
+
+	// Increase weight of root obj only if it was't done yet
+	for root_idx, root := range roots {
+		id := ids[root_idx]
+		if root != heaviest {
+			_, effective_root, err := ds.getPath(id)
+			if err != nil {
+				return err
+			}
+
+			if effective_root != heaviest {
+				root_weight := ds.Weights[root]
+				ds.Weights[heaviest] += root_weight
+				ds.Parents[root] = heaviest
+			}
 		}
 	}
 
-	return max, max_idx, nil
-
-}
-
-func (ds *DisjointSetInt) getRoots(ids []int) []int {
-	result := make([]int, len(ids))
-	for idx, id := range ids {
-		result[idx] = ds.getOrCreateRoot(id)
-	}
-	return result
-}
-
-func (ds *DisjointSetInt) Union(ids []int) {
-	if len(ids) == 0 {
-		return
-	}
-	roots := ds.getRoots(ids)
-	fmt.Printf("Union for int is called: %v\n", roots)
+	return nil
 }

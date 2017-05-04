@@ -1,22 +1,23 @@
 package search
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
 
 func TestNewDisjointSetInt_getHeaviestFailed(t *testing.T) {
 	ds := NewDisjointSetInt(0)
-	cases := []struct{
+	cases := []struct {
 		input []int
-		msg string
+		msg   string
 	}{
 		{input: []int{}, msg: "Can't find minimal value in the empty collection"},
 		{input: []int{1}, msg: "'1' is not found in weights"},
 	}
 	for _, c := range cases {
 		_, _, err := ds.getHeaviest(c.input, c.input)
-		if err == nil || err.Error() != c.msg{
+		if err == nil || err.Error() != c.msg {
 			t.Errorf("getHeaviest should be failed with: '%v', have: '%v'", c.msg, err)
 		}
 	}
@@ -24,7 +25,7 @@ func TestNewDisjointSetInt_getHeaviestFailed(t *testing.T) {
 
 func TestNewDisjointSetInt_getHeaviestSuccess(t *testing.T) {
 	cases := []struct {
-		ids []int
+		ids      []int
 		expected int
 	}{
 		{ids: []int{1, 2}, expected: 2},
@@ -48,7 +49,7 @@ func TestNewDisjointSetInt_getHeaviestSuccess(t *testing.T) {
 
 		max, _, err := ds.getHeaviest(c.ids, roots)
 		if err != nil {
-			t.Errorf("Calculation of heaviest for '%v' failed " +
+			t.Errorf("Calculation of heaviest for '%v' failed "+
 				"with error: %v", c.ids, err)
 		}
 		if max != c.expected {
@@ -144,4 +145,34 @@ func TestDisjointSetInt_UnionMergeByMultipleIntersections(t *testing.T) {
 		map[int]int{1: 3, 2: 3, 3: 7, 4: 7, 5: 7, 6: 7, 7: 7},
 		map[int]int{1: 1, 2: 1, 3: 3, 4: 1, 5: 1, 6: 1, 7: 7},
 		ds, t)
+}
+
+func TestDisjointSetInt_EmitGroups(t *testing.T) {
+	cases := []struct {
+		input    [][]int
+		expected [][]int
+	}{
+		//{input: [][]int{}, expected: [][]int{}},
+		//{input: [][]int{{}}, expected: [][]int{}},
+		{
+			input:    [][]int{{1, 2, 3}, {4, 5}, {5, 6}},
+			expected: [][]int{{1, 2, 3}, {4, 5, 6}},
+		},
+	}
+	for _, c := range cases {
+		ds := NewDisjointSetInt(0)
+		for _, ids := range c.input {
+			fmt.Println("adding ", ids)
+			ds.Union(ids)
+		}
+		fmt.Println("p", ds.Parents)
+		fmt.Println("w", ds.Weights)
+		actual := [][]int{}
+		for out_ids := range ds.EmitGroups() {
+			fmt.Println("Out ids", out_ids)
+			actual = append(actual, out_ids)
+		}
+		fmt.Println("actual", actual)
+		fmt.Println("expected", c.expected)
+	}
 }

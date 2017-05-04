@@ -7,42 +7,42 @@ import (
 
 func TestFindMaxCrossingArray(t *testing.T) {
 	var tests = []struct {
-		arr []int
+		arr            []int
 		low, mid, high int
-		expected ArrayRangeSum
+		expected       ArrayRangeSum
 	}{
 		{
-			arr: []int {1, 2, 3, 4, 5},
+			arr: []int{1, 2, 3, 4, 5},
 			low: 0, mid: 2, high: 4,
 			expected: ArrayRangeSum{low: 0, high: 4, sum: 15},
 		},
 		{
-			arr: []int {1, 2, 0, 4, 5},
+			arr: []int{1, 2, 0, 4, 5},
 			low: 0, mid: 2, high: 4,
 			expected: ArrayRangeSum{low: 0, high: 4, sum: 12},
 		},
 		{
-			arr: []int {1, 2, 0, 4, 5},
+			arr: []int{1, 2, 0, 4, 5},
 			low: 0, mid: 2, high: 4,
 			expected: ArrayRangeSum{low: 0, high: 4, sum: 12},
 		},
 		{
-			arr: []int {1, 2, 3, 4},
+			arr: []int{1, 2, 3, 4},
 			low: 0, mid: 2, high: 3,
 			expected: ArrayRangeSum{low: 0, high: 3, sum: 10},
 		},
 		{
-			arr: []int {-1, 2, -3, 4},
+			arr: []int{-1, 2, -3, 4},
 			low: 0, mid: 2, high: 3,
 			expected: ArrayRangeSum{low: 1, high: 3, sum: 3},
 		},
 		{
-			arr: []int {1, 2, -3, 4},
+			arr: []int{1, 2, -3, 4},
 			low: 0, mid: 2, high: 3,
 			expected: ArrayRangeSum{low: 0, high: 3, sum: 4},
 		},
 		{
-			arr: []int {1, 2, -3, 4, -3},
+			arr: []int{1, 2, -3, 4, -3},
 			low: 0, mid: 2, high: 4,
 			expected: ArrayRangeSum{low: 0, high: 3, sum: 4},
 		},
@@ -58,63 +58,63 @@ func TestFindMaxCrossingArray(t *testing.T) {
 
 func TestFindMaxSubarray(t *testing.T) {
 	var tests = []struct {
-		input []int
+		input    []int
 		expected ArrayRangeSum
 	}{
 		// empty array
 		{
-			input: []int {},
+			input:    []int{},
 			expected: ArrayRangeSum{low: 0, high: 0, sum: 0},
 		},
 		// one element array
 		{
-			input: []int {1},
+			input:    []int{1},
 			expected: ArrayRangeSum{low: 0, high: 0, sum: 1},
 		},
 		{
-			input: []int {-1},
+			input:    []int{-1},
 			expected: ArrayRangeSum{low: 0, high: 0, sum: -1},
 		},
 		{
-			input: []int {10},
+			input:    []int{10},
 			expected: ArrayRangeSum{low: 0, high: 0, sum: 10},
 		},
 		// positive elements
 		{
-			input: []int {1, 10, 2},
+			input:    []int{1, 10, 2},
 			expected: ArrayRangeSum{low: 0, high: 2, sum: 13},
 		},
 		{
-			input: []int {1, 10, 2, 0},
+			input:    []int{1, 10, 2, 0},
 			expected: ArrayRangeSum{low: 0, high: 2, sum: 13},
 		},
 		{
-			input: []int {1, 10, 2, 0, 0, 4},
+			input:    []int{1, 10, 2, 0, 0, 4},
 			expected: ArrayRangeSum{low: 0, high: 5, sum: 17},
 		},
 		{
-			input: []int {0, 1, 10, 2},
+			input:    []int{0, 1, 10, 2},
 			expected: ArrayRangeSum{low: 1, high: 3, sum: 13},
 		},
 		{
-			input: []int {5, 0, 1, 10, 2},
+			input:    []int{5, 0, 1, 10, 2},
 			expected: ArrayRangeSum{low: 0, high: 4, sum: 18},
 		},
 		// negative elements
 		{
-			input: []int {-1, -10, -2},
+			input:    []int{-1, -10, -2},
 			expected: ArrayRangeSum{low: 0, high: 0, sum: -1},
 		},
 		{
-			input: []int {-1, -10, 0, -2},
+			input:    []int{-1, -10, 0, -2},
 			expected: ArrayRangeSum{low: 2, high: 2, sum: 0},
 		},
 		{
-			input: []int {0, -1, -10, -2},
+			input:    []int{0, -1, -10, -2},
 			expected: ArrayRangeSum{low: 0, high: 0, sum: 0},
 		},
 		{
-			input: []int {-1, -10, -2, 0},
+			input:    []int{-1, -10, -2, 0},
 			expected: ArrayRangeSum{low: 3, high: 3, sum: 0},
 		},
 	}
@@ -130,7 +130,7 @@ func TestFindMaxSubarray(t *testing.T) {
 }
 
 func TestFindMaxSubArrayReferenceValue(t *testing.T) {
-	var arr = []int {
+	var arr = []int{
 		13, -3, -25, 20, -3, -16, -23, 18, 20, -7, 12, -5,
 		-22, 15, -4, 7,
 	}
@@ -140,8 +140,8 @@ func TestFindMaxSubArrayReferenceValue(t *testing.T) {
 		t.Errorf("Expected range: %v, actual: %v",
 			expectedRange, actualRange)
 	}
-	expectedArray := []int {18, 20, -7, 12}
-	actualArray := arr[actualRange.low:actualRange.high + 1]
+	expectedArray := []int{18, 20, -7, 12}
+	actualArray := arr[actualRange.low : actualRange.high+1]
 	if !reflect.DeepEqual(expectedArray, actualArray) {
 		t.Errorf("Expected array: %v, actual: %v",
 			expectedArray, actualArray)

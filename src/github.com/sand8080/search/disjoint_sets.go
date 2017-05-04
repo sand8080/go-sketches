@@ -1,13 +1,15 @@
 package search
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
+	"sync"
 )
 
 type DisjointSetInt struct {
 	Parents map[int]int
 	Weights map[int]int
+	sync.Mutex
 }
 
 func NewDisjointSetInt(size int) *DisjointSetInt {
@@ -26,10 +28,10 @@ func (ds *DisjointSetInt) getPath(id int) ([]int, int, error) {
 	}
 
 	for {
-		if root == path[len(path) - 1] {
+		if root == path[len(path)-1] {
 			return path, root, nil
 		}
-                path = append(path, root)
+		path = append(path, root)
 		root, ok = ds.Parents[root]
 		if !ok {
 			panic(fmt.Sprintf("Key %v not found in parents", id))
@@ -56,8 +58,7 @@ func (ds *DisjointSetInt) getOrCreateRoot(id int) (int, error) {
 	return root, nil
 }
 
-
-func (ds * DisjointSetInt) getHeaviest(ids, roots []int) (int, int, error) {
+func (ds *DisjointSetInt) getHeaviest(ids, roots []int) (int, int, error) {
 
 	if len(roots) == 0 {
 		return 0, 0, errors.New("Can't find minimal value in the " +
@@ -102,6 +103,9 @@ func (ds *DisjointSetInt) getRoots(ids []int) ([]int, error) {
 }
 
 func (ds *DisjointSetInt) Union(ids []int) error {
+	ds.Lock()
+	defer ds.Unlock()
+
 	if len(ids) == 0 {
 		return nil
 	}
@@ -131,6 +135,50 @@ func (ds *DisjointSetInt) Union(ids []int) error {
 			}
 		}
 	}
-
 	return nil
+}
+
+type group struct {
+	ids    []int
+	weight int
+}
+
+func (ds *DisjointSetInt) EmitGroups() <-chan []int {
+	ch := make(chan []int)
+	go func() {
+		defer close(ch)
+		ds.Lock()
+		defer ds.Unlock()
+
+		//fmt.Println("Starting groups emission")
+		ready_to_dump := make(map[int]group)
+
+		for id := range ds.Parents {
+			_, root, err := ds.getPath(id)
+			if err != nil {
+				panic(err)
+			}
+			if g, ok := ready_to_dump[root]; ok {
+				g.ids = append(g.ids, id)
+			} else {
+				g.weight = ds.Weights[root]
+				g.ids = append(g.ids, id)
+			}
+
+			g := ready_to_dump[root]
+			g.weight -= 1
+
+			// All children are collected
+			if g.weight == 0 {
+				ch <- g.ids
+				//delete(ready_to_dump, root)
+			} else if g.weight < 0 {
+				panic("Group emission failed: weight less than 0")
+			}
+		}
+		if len(ready_to_dump) > 0 {
+			panic(fmt.Sprintf("Not all groups dumped: %v", ready_to_dump))
+		}
+	}()
+	return ch
 }

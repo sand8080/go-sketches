@@ -38,7 +38,7 @@ func FindMaxCrossingArray(arr []int, low, mid, high int) ArrayRangeSum {
 
 func FindMaxSubArray(arr []int) ArrayRangeSum {
 	if len(arr) > 0 {
-		return FindMaxSubArrayRange(arr, 0, len(arr) - 1)
+		return FindMaxSubArrayRange(arr, 0, len(arr)-1)
 	} else {
 		return ArrayRangeSum{}
 	}
@@ -51,7 +51,7 @@ func FindMaxSubArrayRange(arr []int, low, high int) ArrayRangeSum {
 
 	mid := (high + low) / 2
 	leftRange := FindMaxSubArrayRange(arr, low, mid)
-	rightRange := FindMaxSubArrayRange(arr, mid + 1, high)
+	rightRange := FindMaxSubArrayRange(arr, mid+1, high)
 	crossRange := FindMaxCrossingArray(arr, low, mid, high)
 	if leftRange.sum >= rightRange.sum && leftRange.sum >= crossRange.sum {
 		return leftRange

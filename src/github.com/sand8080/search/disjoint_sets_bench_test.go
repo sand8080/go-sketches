@@ -11,12 +11,11 @@ func random(min, max int) int {
 		return max
 	}
 	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(max - min) + min
+	return rand.Intn(max-min) + min
 }
 
 func BenchmarkDisjointSetInt_Union(b *testing.B) {
-	b.Logf("b.N is: %d\n", b.N)
-	ds := NewDisjointSetInt(b.N / 3)
+	ds := NewDisjointSetInt(b.N)
 	for i := 0; i < b.N; i++ {
 		size := random(0, 4)
 		ids := make([]int, size)

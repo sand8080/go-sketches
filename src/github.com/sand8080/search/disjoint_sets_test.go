@@ -1,9 +1,9 @@
 package search
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
+	"sort"
 )
 
 func TestNewDisjointSetInt_getHeaviestFailed(t *testing.T) {
@@ -147,32 +147,85 @@ func TestDisjointSetInt_UnionMergeByMultipleIntersections(t *testing.T) {
 		ds, t)
 }
 
+type sortableSlicesOfInts [][]int
+
+func (o sortableSlicesOfInts) Len() int { return len(o) }
+func (o sortableSlicesOfInts) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+func (o sortableSlicesOfInts) Less(i, j int) bool {
+	if len(o[i]) == len(o[j]) {
+		for idx, i_val := range o[i] {
+			if i_val == o[j][idx] {
+				continue
+			} else {
+				return i_val < o[j][idx]
+			}
+		}
+		return false
+	} else {
+		return len(o[i]) < len(o[j])
+	}
+}
+
+func TestSortableSlicesOfInts(t *testing.T) {
+	cases := []struct{
+		input [][]int
+		expected [][]int
+	}{
+		{[][]int{{}}, [][]int{{}}},
+		{[][]int{{1}}, [][]int{{1}}},
+		{[][]int{{1}, {1, 2}}, [][]int{{1}, {1, 2}}},
+		{[][]int{{1}, {2, 1}}, [][]int{{1}, {2, 1}}},
+		{[][]int{{2, 1}, {1}}, [][]int{{1}, {2, 1}}},
+		{[][]int{{2, 1}, {1, 2}, {1}}, [][]int{{1}, {1, 2}, {2, 1}}},
+	}
+	for _, c := range cases {
+		sort.Sort(sortableSlicesOfInts(c.input))
+		if !reflect.DeepEqual(c.expected, c.input) {
+			t.Errorf("%v != %v", c.expected, c.input)
+		}
+	}
+}
+
 func TestDisjointSetInt_EmitGroups(t *testing.T) {
 	cases := []struct {
 		input    [][]int
 		expected [][]int
 	}{
-		//{input: [][]int{}, expected: [][]int{}},
-		//{input: [][]int{{}}, expected: [][]int{}},
+		{input: [][]int{}, expected: [][]int{}},
+		{input: [][]int{{}}, expected: [][]int{}},
 		{
 			input:    [][]int{{1, 2, 3}, {4, 5}, {5, 6}},
 			expected: [][]int{{1, 2, 3}, {4, 5, 6}},
+		},
+		{
+			input:    [][]int{{1, 2, 3}, {4, 5}, {1, 5}},
+			expected: [][]int{{1, 2, 3, 4, 5}},
+		},
+		{
+			input:    [][]int{{1, 2, 3}, {4, 5}, {1, 4}},
+			expected: [][]int{{1, 2, 3, 4, 5}},
+		},
+		{
+			input:    [][]int{{1, 2, 3}, {4, 5}, {6}, {1, 4}},
+			expected: [][]int{{1, 2, 3, 4, 5}, {6}},
 		},
 	}
 	for _, c := range cases {
 		ds := NewDisjointSetInt(0)
 		for _, ids := range c.input {
-			fmt.Println("adding ", ids)
 			ds.Union(ids)
 		}
-		fmt.Println("p", ds.Parents)
-		fmt.Println("w", ds.Weights)
 		actual := [][]int{}
 		for out_ids := range ds.EmitGroups() {
-			fmt.Println("Out ids", out_ids)
+			sort.Ints(out_ids)
 			actual = append(actual, out_ids)
 		}
-		fmt.Println("actual", actual)
-		fmt.Println("expected", c.expected)
+		sort.Sort(sortableSlicesOfInts(actual))
+		sort.Sort(sortableSlicesOfInts(c.expected))
+
+		if !reflect.DeepEqual(c.expected, actual) {
+			t.Errorf("Expected group of ids %v, got %v",
+				c.expected, actual)
+		}
 	}
 }

@@ -138,6 +138,7 @@ func (ds *DisjointSetInt) Union(ids []int) error {
 	return nil
 }
 
+// Type for emitting groups of ids
 type group struct {
 	ids    []int
 	weight int
@@ -158,20 +159,22 @@ func (ds *DisjointSetInt) EmitGroups() <-chan []int {
 			if err != nil {
 				panic(err)
 			}
-			if g, ok := ready_to_dump[root]; ok {
+
+			g, ok := ready_to_dump[root]
+			if ok {
 				g.ids = append(g.ids, id)
 			} else {
+				g.ids = []int{id}
 				g.weight = ds.Weights[root]
-				g.ids = append(g.ids, id)
 			}
 
-			g := ready_to_dump[root]
 			g.weight -= 1
+			ready_to_dump[root] = g
 
 			// All children are collected
 			if g.weight == 0 {
 				ch <- g.ids
-				//delete(ready_to_dump, root)
+				delete(ready_to_dump, root)
 			} else if g.weight < 0 {
 				panic("Group emission failed: weight less than 0")
 			}

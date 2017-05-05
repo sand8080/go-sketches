@@ -2,8 +2,8 @@ package search
 
 import (
 	"reflect"
-	"testing"
 	"sort"
+	"testing"
 )
 
 func TestNewDisjointSetInt_getHeaviestFailed(t *testing.T) {
@@ -149,7 +149,7 @@ func TestDisjointSetInt_UnionMergeByMultipleIntersections(t *testing.T) {
 
 type sortableSlicesOfInts [][]int
 
-func (o sortableSlicesOfInts) Len() int { return len(o) }
+func (o sortableSlicesOfInts) Len() int      { return len(o) }
 func (o sortableSlicesOfInts) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 func (o sortableSlicesOfInts) Less(i, j int) bool {
 	if len(o[i]) == len(o[j]) {
@@ -167,8 +167,8 @@ func (o sortableSlicesOfInts) Less(i, j int) bool {
 }
 
 func TestSortableSlicesOfInts(t *testing.T) {
-	cases := []struct{
-		input [][]int
+	cases := []struct {
+		input    [][]int
 		expected [][]int
 	}{
 		{[][]int{{}}, [][]int{{}}},

@@ -163,7 +163,8 @@ func insertRelations(conn *sql.DB, rels_num, min_opr, max_opr int) error {
 	}
 	max_opr = min(max_opr, max_obj_id - min_obj_id)
 
-	stmt, err := txn.Prepare(pq.CopyIn("relations", "object_id", "relative_ids"))
+	stmt, err := txn.Prepare(pq.CopyIn("relations", "object_id",
+		"relative_ids"))
 	if err != nil {
 		return err
 	}
@@ -305,7 +306,7 @@ func makeUnion(txn *sql.Tx) (*search.DisjointSetInt, error) {
 	//Fetching relations by ids chunks
 	rels_stmt, err := txn.Prepare("SELECT object_id, relative_ids " +
 		"FROM relations " +
-		"WHERE object_id IN ($1)")
+		"WHERE object_id = ANY($1)")
 	if err != nil {
 		return nil, err
 	}

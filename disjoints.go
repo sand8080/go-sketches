@@ -11,14 +11,8 @@ import (
 )
 
 func readPassword(c *cli.Context) error {
-	// TODO(sand8080): REMOVE ME
-	c.GlobalSet("password", "disjoint")
-
-	if len(c.GlobalString("password")) > 0 {
-		return nil
-	}
-	fmt.Println("DB password:")
 	if c.GlobalBool("pass") {
+		fmt.Println("DB password:")
 		pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
 			return err
@@ -100,7 +94,7 @@ func main() {
 			Action: fill,
 			Flags: []cli.Flag{
 				cli.IntFlag{
-					Name:  "objs, o",
+					Name:  "num, n",
 					Usage: "Number of objects in DB",
 					Value: 0,
 				},
@@ -129,6 +123,10 @@ func main() {
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:  "config, c",
+			Usage: "Load configuration from `FILE`",
+		},
+		cli.StringFlag{
 			Name:  "host, a",
 			Usage: "DB host",
 			Value: "localhost",
@@ -155,13 +153,15 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "pass, P",
-			Usage: "DB password",
+			Usage: "Read DB password from stdin",
 		},
 		cli.StringFlag{
 			Name:   "password",
 			Hidden: true,
+			Value:  "disjoint",
 		},
 	}
+
 	app.Action = func(c *cli.Context) error {
 		if len(os.Args) < 2 {
 			return cli.ShowAppHelp(c)

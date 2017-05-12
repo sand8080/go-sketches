@@ -9,7 +9,7 @@ import (
 	"github.com/sand8080/go-sketches/search"
 )
 
-var dumpEvery = 10
+var dumpEvery = 100000
 
 func GetDBConnection(host string, port int, user, password, dbname, sslmode string) (*sql.DB, error) {
 	connString := fmt.Sprintf("host=%s port=%d user=%s password=%s "+
@@ -42,11 +42,9 @@ func DropTables(conn *sql.DB) error {
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return err
 	}
-
 	fmt.Println("Tables are dropped")
 	return nil
 }
@@ -109,14 +107,12 @@ func insertObjects(conn *sql.DB, objs_num int) error {
 	defer txn.Rollback()
 
 	stmt, err := txn.Prepare(pq.CopyIn("objects", "id"))
-	if err != nil {
-		return err
-	}
 
 	start_chunk := time.Now()
 	for i := 1; i <= objs_num; i++ {
 		_, err = stmt.Exec(i)
 		if err != nil {
+			stmt.Close()
 			return err
 		}
 		if i % dumpEvery == 0 {
@@ -126,9 +122,7 @@ func insertObjects(conn *sql.DB, objs_num int) error {
 		}
 	}
 
-	if err := stmt.Close(); err != nil {
-		return err
-	}
+	stmt.Close()
 	if err := txn.Commit(); err != nil {
 		return err
 	}
@@ -163,14 +157,10 @@ func insertRelations(conn *sql.DB, rels_num, min_opr, max_opr int) error {
 	}
 	max_opr = min(max_opr, max_obj_id - min_obj_id)
 
-	stmt, err := txn.Prepare(pq.CopyIn("relations", "object_id",
-		"relative_ids"))
-	if err != nil {
-		return err
-	}
-
 	start_chunk := time.Now()
 	utils.InitRandom()
+
+	stmt, err := txn.Prepare(pq.CopyIn("relations", "object_id", "relative_ids"))
 
 	for i := 1; i <= rels_num; i++ {
 		// Generating relative_ids
@@ -188,6 +178,7 @@ func insertRelations(conn *sql.DB, rels_num, min_opr, max_opr int) error {
 
 		_, err = stmt.Exec(obj_id, pq.Array(ids))
 		if err != nil {
+			stmt.Close()
 			return err
 		}
 
@@ -198,9 +189,7 @@ func insertRelations(conn *sql.DB, rels_num, min_opr, max_opr int) error {
 		}
 	}
 
-	if err := stmt.Close(); err != nil {
-		return err
-	}
+	stmt.Close()
 	if err := txn.Commit(); err != nil {
 		return err
 	}
@@ -279,6 +268,7 @@ func makeUnion(txn *sql.Tx) (*search.DisjointSetInt, error) {
 	}
 	defer rows.Close()
 
+	//Fetching object ids chunks
 	obj_ids_chunks := make([][]int, 0, objs_num / dumpEvery)
 	var obj_id, counter int
 	chunk := make([]int, 0, dumpEvery)
@@ -294,78 +284,99 @@ func makeUnion(txn *sql.Tx) (*search.DisjointSetInt, error) {
 			obj_ids_chunks = append(obj_ids_chunks, chunk)
 			chunk = make([]int, 0, dumpEvery)
 		}
+
+		//Adding single id to the disjoint set
+		union.Union([]int{obj_id})
+	}
+	//Adding last non empty ids chunk
+	if len(chunk) > 0 {
+		obj_ids_chunks = append(obj_ids_chunks, chunk)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	if len(chunk) > 0 {
-		obj_ids_chunks = append(obj_ids_chunks, chunk)
-	}
-
-	//Fetching relations by ids chunks
-	rels_stmt, err := txn.Prepare("SELECT object_id, relative_ids " +
-		"FROM relations " +
-		"WHERE object_id = ANY($1)")
-	if err != nil {
-		return nil, err
-	}
-	defer rels_stmt.Close()
-
-	var object_id int
-	var relative_ids []int
+	start_chunk := time.Now()
+	counter = 0
 	for _, ids := range obj_ids_chunks {
-		rows, err := rels_stmt.Query(pq.Array(ids))
+		var object_id int
+		var relative_ids []sql.NullInt64
+
+		rows, err := txn.Query("SELECT object_id, relative_ids " +
+			"FROM relations " +
+			"WHERE object_id = ANY($1)", pq.Array(ids))
 		if err != nil {
 			return nil, err
 		}
-		defer rows.Close()
 
 		for rows.Next() {
-			err := rows.Scan(&object_id, &relative_ids)
+			err := rows.Scan(&object_id, pq.Array(&relative_ids))
 			if err != nil {
 				return nil, err
 			}
-			fmt.Println("data:", object_id, relative_ids)
+
+			//Adding ids to the disjoints
+			ids := make([]int, 0, len(relative_ids) + 1)
+			ids = append(ids, object_id)
+			for _, id := range relative_ids {
+				ids = append(ids, int(id.Int64))
+			}
+			union.Union(ids)
+			counter++
+			if counter % dumpEvery == 0 {
+				fmt.Printf("Processed records %d in %v\n",
+					counter, time.Since(start_chunk))
+				start_chunk = time.Now()
+			}
 		}
+		rows.Close()
 		if err := rows.Err(); err != nil {
 			return nil, err
 		}
 	}
-
-	//counter = 0
-	//tick_every = 100000
-	//s = datetime.datetime.utcnow()
-	//curs.execute(select_objs)
-	//ids_chunks = split_every(curs.fetchall(), 10000)
-	//for i, ids in enumerate(ids_chunks):
-	//obj_ids = []
-	//for row in ids:
-	//obj_id = row[0]
-	//obj_ids.append(obj_id)
-	//union.union((obj_id,))
-	//
-	//curs.execute(select_rels, {'object_ids': tuple(obj_ids)})
-	//for rel_row in curs.fetchall():
-	//obj_id = rel_row[0]
-	//relative_ids = rel_row[1]
-	//union.union([obj_id] + relative_ids)
-	//counter += 1
-	//if counter % tick_every == 0:
-	//print("Processed records num: {0} in {1}".format(
-	//	counter, datetime.datetime.utcnow() - s))
-	//s = datetime.datetime.utcnow()
 	return union, nil
 }
 
 func saveDisjointSets(conn *sql.DB, union *search.DisjointSetInt) error {
 	start := time.Now()
 	fmt.Println("Disjoint sets saving started")
-	fmt.Printf("Disjoint sets saving finished at: %v\n",
-		time.Since(start))
+
+	txn, err := conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer txn.Rollback()
+
+	stmt, err := txn.Prepare(pq.CopyIn("components", "object_ids"))
+	if err != nil {
+		return err
+	}
+
+	counter := 0
+	start_save := time.Now()
+	for ids := range union.EmitGroups() {
+		_, err = stmt.Exec(pq.Array(ids))
+		if err != nil {
+			stmt.Close()
+			return err
+		}
+		counter++
+		if counter % dumpEvery == 0 {
+			fmt.Printf("Saved %d components in %v\n",
+				counter, time.Since(start_save))
+			start_save = time.Now()
+		}
+	}
+
+	stmt.Close()
+	if err := txn.Commit(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Disjoint sets (%d) saving finished at: %v\n",
+		counter, time.Since(start))
 	return nil
 }
-
 
 func cleanComponents(conn *sql.DB) error {
 	fmt.Println("Cleaning components table")

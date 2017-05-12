@@ -151,7 +151,6 @@ func (ds *DisjointSetInt) EmitGroups() <-chan []int {
 		ds.Lock()
 		defer ds.Unlock()
 
-		//fmt.Println("Starting groups emission")
 		ready_to_dump := make(map[int]group)
 
 		for id := range ds.Parents {

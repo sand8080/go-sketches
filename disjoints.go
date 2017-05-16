@@ -57,7 +57,7 @@ func fill(c *cli.Context) error {
 		return err
 	} else {
 		defer conn.Close()
-		return db.FillTables(conn, c.Int("objs"), c.Int("rels"),
+		return db.FillTables(conn, c.Int("num"), c.Int("rels"),
 			c.Int("min_opr"), c.Int("max_opr"))
 	}
 }

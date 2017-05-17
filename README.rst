@@ -90,10 +90,10 @@ Result will be stored into 'components' table.
 
 For instance creation of DB with 20M objects and 200M relations can be done with: ::
 
-  go-sketches drop && go-sketches create && go-sketches fill -n 20000000 -r 200000000 -m 0 -M 10
+  go-sketches drop && go-sketches create && go-sketches fill -n 20000000 -r 200000000 -m 0 -M 3 
 
-DB data generation takes about ~1.5 hours on the Intel core-i5 with 4 cores with 16Gb of RAM.
-Recalculation of the disjoint sets takes about 25 minutes.
+DB data generation takes about ~1 hour on the Intel Core-i5 with 4 cores with 16Gb of RAM.
+Recalculation of the disjoint sets takes about ~15 minutes.
 
 .. _PostgreSQL: https://www.postgresql.org/
 .. _Golang: https://golang.org

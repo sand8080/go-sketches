@@ -272,6 +272,7 @@ func makeUnion(txn *sql.Tx) (*search.DisjointSetInt, error) {
 	obj_ids_chunks := make([][]int, 0, objs_num / dumpEvery)
 	var obj_id, counter int
 	chunk := make([]int, 0, dumpEvery)
+        start_objs := time.Now()
 	for rows.Next() {
 		err := rows.Scan(&obj_id)
 		if err != nil {
@@ -283,6 +284,9 @@ func makeUnion(txn *sql.Tx) (*search.DisjointSetInt, error) {
 		if counter % dumpEvery == 0 {
 			obj_ids_chunks = append(obj_ids_chunks, chunk)
 			chunk = make([]int, 0, dumpEvery)
+			fmt.Printf("Processed %d objects in %v\n", counter,
+				time.Since(start_objs))
+			start_objs = time.Now()
 		}
 
 		//Adding single id to the disjoint set
@@ -299,6 +303,10 @@ func makeUnion(txn *sql.Tx) (*search.DisjointSetInt, error) {
 	start_chunk := time.Now()
 	counter = 0
 	for _, ids := range obj_ids_chunks {
+		if len(ids) == 0 {
+			continue
+		}
+
 		var object_id int
 		var relative_ids []sql.NullInt64
 
